@@ -1,0 +1,17 @@
+# Minimal self-host setup.
+#
+#   1. cp .env.example .env  and fill it in
+#   2. docker compose run --rm bot node dist/deploy-commands.js   # register slash commands (once)
+#   3. docker compose up -d
+services:
+  bot:
+    build: .
+    image: wavespeed-discord-bot:latest
+    restart: unless-stopped
+    env_file: .env
+    # The bot makes only outbound calls — no ports need to be published.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
