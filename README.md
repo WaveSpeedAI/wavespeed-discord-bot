@@ -7,11 +7,13 @@ Slash-command only, TypeScript, [discord.js](https://discord.js.org) v14, built 
 official [`wavespeed`](https://www.npmjs.com/package/wavespeed) SDK.
 
 > [!WARNING]
-> **Whoever hosts this bot pays for every generation.**
-> Discord does not let a bot ask each user for their own API key, so the bot runs on a
-> single `WAVESPEED_API_KEY` — yours. Any user who can see the bot can spend your credit.
-> Read [Cost and abuse control](#cost-and-abuse-control) before you invite it anywhere
-> public.
+> **This bot is meant to be self-hosted, and whoever hosts it pays for every generation.**
+> It runs on a single `WAVESPEED_API_KEY` — yours — so any user who can see the bot spends
+> your credit. Keep it in servers you control, and read
+> [Cost and abuse control](#cost-and-abuse-control) before inviting it anywhere public.
+>
+> (A shared bot *could* collect each user's own key via a `/link` modal instead; that is a
+> deliberate non-goal here, not a Discord limitation. This build is single-key by design.)
 
 ---
 
