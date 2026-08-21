@@ -209,3 +209,8 @@ If you want this bot listed rather than just self-hosted:
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+**[WaveSpeed AI](https://wavespeed.ai/)** — AI image & video generation platform.
+Try it in the browser: **[Image generator](https://wavespeed.ai/image-generator)** · **[Video generator](https://wavespeed.ai/video-generator)**
