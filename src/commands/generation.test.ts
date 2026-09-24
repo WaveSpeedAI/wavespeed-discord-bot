@@ -110,7 +110,7 @@ describe('/balance', () => {
     const interaction = fakeInteraction({ commandName: 'balance' });
     await balance(interaction, ctx());
     expect(interaction.calls.defer[0]).toEqual({ ephemeral: true });
-    expect(interaction.calls.edit[0]!.embeds![0]!.description).toContain('12.50 USD');
+    expect(interaction.calls.edit[0]!.embeds![0]!.description).toContain('12.345678 USD');
   });
 
   it('reports lookup failures', async () => {

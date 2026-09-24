@@ -95,6 +95,6 @@ export function fakeGateway(
   return {
     generate: options.generate ?? vi.fn(async () => options.outcome ?? fakeOutcome()),
     listModels: vi.fn(async () => options.models ?? []),
-    getBalance: vi.fn(async () => options.balance ?? { balance: 12.5, currency: 'USD' }),
+    getBalance: vi.fn(async () => options.balance ?? { balance: 12.345678, currency: 'USD' }),
   };
 }

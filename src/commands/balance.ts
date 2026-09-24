@@ -8,7 +8,7 @@ import { errorEmbed, infoEmbed } from '../lib/render.js';
 import type { CommandContext } from './context.js';
 
 export function formatBalance(balance: number, currency: string): string {
-  return `**${balance.toFixed(2)} ${currency}** remaining on the bot owner's WaveSpeed account.\nTop up at https://wavespeed.ai/dashboard`;
+  return `**${balance} ${currency}** remaining on the bot owner's WaveSpeed account.\nTop up at https://wavespeed.ai/dashboard`;
 }
 
 export async function execute(
