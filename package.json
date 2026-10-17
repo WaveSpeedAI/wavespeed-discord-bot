@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "discord.js": "^14.16.3",
-    "wavespeed": "^0.3.1"
+    "wavespeed": "^0.3.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

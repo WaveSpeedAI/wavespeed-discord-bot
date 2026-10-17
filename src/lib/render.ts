@@ -74,6 +74,22 @@ export function stillRunningEmbed(model: string): Embed {
 }
 
 export function resultEmbed(outcome: GenerationOutcome, prompt?: string): Embed {
+  if (outcome.failureKind === 'submit_unknown') {
+    // No task id exists to show. The task may or may not have been created.
+    return {
+      title: 'Submission outcome unknown',
+      description: truncate(
+        'WaveSpeed did not confirm this request, so a task may already exist (and be charged). ' +
+          'Check your recent predictions before running it again.' +
+          (outcome.error ? `\n\n${outcome.error}` : ''),
+        1000,
+      ),
+      color: COLOR_FAILURE,
+      fields: [{ name: 'Model', value: `\`${outcome.model}\``, inline: true }],
+      footer: { text: 'Powered by WaveSpeed' },
+    };
+  }
+
   const fields: EmbedField[] = [
     { name: 'Model', value: `\`${outcome.model}\``, inline: true },
     { name: 'Prediction ID', value: `\`${outcome.predictionId}\``, inline: true },
@@ -101,6 +117,21 @@ export function resultEmbed(outcome: GenerationOutcome, prompt?: string): Embed 
       description:
         'The prediction has not finished yet. Look it up later with the prediction id below.',
       color: COLOR_PENDING,
+      fields,
+      footer: { text: 'Powered by WaveSpeed' },
+    };
+  }
+
+  if (outcome.failureKind === 'status_check') {
+    return {
+      title: 'Status check failed',
+      description: truncate(
+        'I could not check this task\'s status, so it may still be running. ' +
+          'Look it up later with the prediction id below instead of running it again.' +
+          (outcome.error ? `\n\n${outcome.error}` : ''),
+        1000,
+      ),
+      color: COLOR_FAILURE,
       fields,
       footer: { text: 'Powered by WaveSpeed' },
     };

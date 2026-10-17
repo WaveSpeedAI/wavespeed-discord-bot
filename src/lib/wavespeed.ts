@@ -25,6 +25,13 @@ export interface GenerationOutcome {
   outputs: string[];
   error?: string;
   model: string;
+  /**
+   * Set when `failed` does not mean the task failed:
+   * - `status_check`: polling gave up after retries; the task may still be running.
+   * - `submit_unknown`: the submit POST's outcome is unknown; a task may exist
+   *   (no id is available). Never retried automatically.
+   */
+  failureKind?: 'status_check' | 'submit_unknown';
 }
 
 export interface WaveSpeedGateway {
@@ -52,6 +59,41 @@ interface Envelope<T> {
 }
 
 const CATALOG_TTL_MS = 60 * 60 * 1000;
+
+/** Read-only catalog/balance GETs: per-request timeout and a few tries. */
+const GET_TIMEOUT_MS = 15_000;
+const GET_MAX_TRIES = 3;
+const GET_RETRY_BASE_MS = 1000;
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+// runNoThrow rebuilds its exceptions from the error text (the original class is
+// lost), so the two non-task failures are recognised by the SDK's messages.
+/** Poll gave up (retries exhausted, or a non-retryable status like 401). */
+const POLL_FAILURE = /Failed to get result for task /;
+/** Submit POST failed; the SDK never retries it and the task may exist. */
+const SUBMIT_FAILURE = /Prediction submission failed:/;
+
+/** Map an SDK `runNoThrow` result to the bot's outcome (exported for tests). */
+export function toOutcome(result: RunNoThrowResult, model: string): GenerationOutcome {
+  const { detail } = result;
+  const message = detail.error?.message;
+  let failureKind: GenerationOutcome['failureKind'];
+  if (detail.status === 'failed') {
+    if (message && SUBMIT_FAILURE.test(message)) {
+      failureKind = 'submit_unknown';
+    } else if (message && POLL_FAILURE.test(message)) {
+      failureKind = 'status_check';
+    }
+  }
+  return {
+    predictionId: detail.taskId,
+    status: detail.status,
+    outputs: toUrls(result.outputs),
+    error: message,
+    model: detail.model || model,
+    ...(failureKind ? { failureKind } : {}),
+  };
+}
 
 function osName(): string {
   const platform = os.platform();
@@ -94,12 +136,30 @@ export function createGateway(config: BotConfig): WaveSpeedGateway {
   let catalog: { fetchedAt: number; models: CatalogModel[] } | undefined;
 
   async function apiGet<T>(path: string): Promise<T> {
-    const res = await fetch(`${config.wavespeedBaseUrl}${path}`, {
-      headers: {
-        Authorization: `Bearer ${config.wavespeedApiKey}`,
-        ...attributionHeaders(),
-      },
-    });
+    // Read-only, so safe to repeat: retry 429/5xx and network errors, each
+    // attempt bounded by its own timeout.
+    let res!: Response;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        res = await fetch(`${config.wavespeedBaseUrl}${path}`, {
+          headers: {
+            Authorization: `Bearer ${config.wavespeedApiKey}`,
+            ...attributionHeaders(),
+          },
+          signal: AbortSignal.timeout(GET_TIMEOUT_MS),
+        });
+      } catch (error) {
+        if (attempt >= GET_MAX_TRIES) throw error;
+        await new Promise((resolve) => setTimeout(resolve, GET_RETRY_BASE_MS * attempt));
+        continue;
+      }
+      if (RETRYABLE_STATUS.has(res.status) && attempt < GET_MAX_TRIES) {
+        await res.body?.cancel().catch(() => undefined);
+        await new Promise((resolve) => setTimeout(resolve, GET_RETRY_BASE_MS * attempt));
+        continue;
+      }
+      break;
+    }
     const body = (await res.json().catch(() => undefined)) as Envelope<T> | undefined;
     if (!res.ok) {
       throw new Error(body?.message || `GET ${path} failed: ${res.status} ${res.statusText}`);
@@ -116,13 +176,7 @@ export function createGateway(config: BotConfig): WaveSpeedGateway {
         timeout: (options?.timeoutMs ?? config.jobTimeoutMs) / 1000,
         pollInterval: 1.5,
       });
-      return {
-        predictionId: result.detail.taskId,
-        status: result.detail.status,
-        outputs: toUrls(result.outputs),
-        error: result.detail.error?.message,
-        model: result.detail.model || model,
-      };
+      return toOutcome(result, model);
     },
 
     async listModels() {
