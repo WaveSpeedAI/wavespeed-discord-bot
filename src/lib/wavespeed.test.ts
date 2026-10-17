@@ -153,8 +153,9 @@ describe('gateway resilience (real SDK, stubbed fetch)', () => {
     expect(JSON.stringify(embed.fields)).not.toContain('unknown`');
   });
 
-  it('retries GET /models on 503 and uses a per-request timeout', async () => {
+  it('retries GET /models on 503 and uses a 30s per-request timeout', async () => {
     let n = 0;
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
     const { gateway, fetchMock } = setup(() =>
       ++n < 3 ? json(503, { message: 'down' }) : json(200, { code: 200, data: [{ model_id: 'a/b' }] }),
     );
@@ -162,6 +163,7 @@ describe('gateway resilience (real SDK, stubbed fetch)', () => {
     expect(models).toEqual([{ model_id: 'a/b' }]);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect((fetchMock.mock.calls[0]![1] as RequestInit).signal).toBeInstanceOf(AbortSignal);
+    expect(timeoutSpy).toHaveBeenCalledWith(30_000);
   });
 
   it('retries GET /balance on network errors, gives up after 3 tries', async () => {

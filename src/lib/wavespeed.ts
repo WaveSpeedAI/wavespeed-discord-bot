@@ -61,7 +61,7 @@ interface Envelope<T> {
 const CATALOG_TTL_MS = 60 * 60 * 1000;
 
 /** Read-only catalog/balance GETs: per-request timeout and a few tries. */
-const GET_TIMEOUT_MS = 15_000;
+const GET_TIMEOUT_MS = 30_000;
 const GET_MAX_TRIES = 3;
 const GET_RETRY_BASE_MS = 1000;
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
